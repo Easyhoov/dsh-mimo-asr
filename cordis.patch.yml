@@ -23,10 +23,11 @@
         maxDurationSeconds: 120
     - id: dsh-mimo-asr
       name: dsh-mimo-asr
-      # Declaring the fields here is what makes the entry appear under
-      # 设置 › 引擎参数 in the app, where the API key can be typed into a secret
-      # field. Leave apiKey out so the key is not written into a patch file:
-      # the plugin falls back to ~/.dsh/mimo-asr.key, then $MIMO_API_KEY.
+      # The form under 设置 › 插件 › dsh-mimo-asr › 设置 (and 设置 › 引擎参数)
+      # comes from the plugin's own Config: fields marked `.volatile()` are
+      # rendered there and read per request. Leave apiKey out of this patch so a
+      # fresh install falls back to $MIMO_API_KEY, then ~/.dsh/mimo-asr.key, and
+      # a key typed into the form is written to the profile's own patch instead.
       config:
         model: mimo-v2.5-asr
         access: api
