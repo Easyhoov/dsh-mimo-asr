@@ -1,0 +1,52 @@
+{
+  "name": "dsh-mimo-asr",
+  "version": "1.0.1",
+  "description": "Xiaomi MiMo (mimo-v2.5-asr) cloud recognizer for DSH: serves the speech/* Remote the DSH Go composer microphone talks to.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "speech-to-text",
+    "asr",
+    "mimo",
+    "xiaomi"
+  ],
+  "author": "Easyhoov",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Easyhoov/dsh-mimo-asr.git"
+  },
+  "homepage": "https://github.com/Easyhoov/dsh-mimo-asr#readme",
+  "bugs": {
+    "url": "https://github.com/Easyhoov/dsh-mimo-asr/issues"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0",
+    "dsh": ">=0.2.0-rc.1"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-experimental-api-speech-to-text": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-experimental-speech-to-text": "0.2.1-rc.2",
+    "@deepseek-ai/schemastery": "^3.18.3"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false
+}
