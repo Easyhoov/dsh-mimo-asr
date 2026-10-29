@@ -1,0 +1,50 @@
+name: Publish to npm
+
+# Token-free publishing through npm trusted publishing (OIDC).
+#
+# One-time setup on npmjs.com before this can run:
+#   https://www.npmjs.com/package/dsh-mimo-asr/access  ->  Trusted Publisher
+#     Publisher: GitHub Actions
+#     Repository: Easyhoov/dsh-mimo-asr
+#     Workflow:   publish.yml
+#     Environment: (leave empty)
+#
+# After that, pushing a `v*` tag publishes the version in package.json. No
+# npm token and no 2FA prompt, which is also what npm is moving towards
+# (bypass-2FA tokens lose direct publishing in 2027-01).
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # required for OIDC
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      # OIDC trusted publishing needs npm >= 11.5.1; Node 22 ships npm 10.x.
+      - name: Upgrade npm
+        run: npm install -g npm@latest && npm --version
+
+      - name: Check the tag matches package.json
+        run: |
+          version=$(node -p "require('./package.json').version")
+          tag=${GITHUB_REF_NAME#v}
+          if [ "$version" != "$tag" ]; then
+            echo "package.json is $version but the tag is $tag" >&2
+            exit 1
+          fi
+
+      - name: Publish
+        run: npm publish --provenance --access public
