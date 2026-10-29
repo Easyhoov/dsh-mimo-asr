@@ -2,69 +2,75 @@
 
 ## 0. 现状
 
-- 包名 `dsh-mimo-asr`：npm 上**还没被占用**（2026-10-29 查证，`npm view dsh-mimo-asr` 返回 404）。
-- 本机 npm **未登录**（`npm whoami` → ENEEDAUTH），所以最后一步 `npm publish` 需要你的账号。
-- dshfind 市场（App 里的「插件市场」）的索引是抓 npm + GitHub 生成：`plugins[].versions[].source.type = "npm"`，`author`/`stars` 来自 GitHub 仓库。**发布到 npm 并被抓到，就会出现在市场里**，没有额外的提交表单。
+- 包名 `dsh-mimo-asr` 已发布：<https://www.npmjs.com/package/dsh-mimo-asr>（1.0.1，2026-10-29）
+- 仓库：<https://github.com/Easyhoov/dsh-mimo-asr>
+- dshfind 市场（App 里的「插件市场」）的索引是抓 npm + GitHub 生成的（`plugins[].versions[].source.type = "npm"`，`author`/`stars` 来自 GitHub 仓库），**没有额外提交表单**：发布到 npm 后等它抓到即可。
 
-## 1. 想清楚仓库地址
+## 1. 这个账号的 2FA 实况（踩坑记录）
 
-市场条目会带 `repository.url` 和 GitHub star 数，没有仓库也能上架，但：
+`easyhoov` 的 2FA 只有 **1 个 security key**，没有 authenticator app：
 
-- 没有 `repository` 字段 → 市场里没有源码入口、没有 stars，排序靠后（`sortKeys.stars`）；
-- 仓库已经建好了（<https://github.com/Easyhoov/dsh-mimo-asr>），`repository`/`homepage`/`bugs` 都已填好，这里记录格式：
+- 所以 `npm publish --otp=123456` **永远走不通**——security key 不产生 6 位码；
+- 直接 `npm publish` 会返回：
+  ```
+  npm error code EOTP
+  npm error This operation requires a one-time password.
+  npm error Open this URL in your browser to authenticate:
+  npm error   https://www.npmjs.com/auth/cli/***
+  ```
+  这是 WebAuthn 挑战流程：**必须在真正的 TTY 里跑**，npm 才会给出完整的一次性链接（非 TTY 下被打码成 `***`），打开后按一下 security key 就完成发布。
+- granular token 只有在表单里勾了 **`Bypass 2FA for publish`** 才能免 OTP；漏勾就仍然 EOTP。
 
-```json
-"repository": { "type": "git", "url": "https://github.com/Easyhoov/dsh-mimo-asr.git" },
-"homepage": "https://github.com/Easyhoov/dsh-mimo-asr#readme",
-"bugs": { "url": "https://github.com/Easyhoov/dsh-mimo-asr/issues" }
-```
+结论：**发布用交互式终端跑**，或者用第 3 节的可信发布。
 
-## 2. 发布
+## 2. 手动发布
 
 ```bash
 cd dsh-mimo-asr
-npm login                 # 浏览器授权
-npm publish               # publishConfig.access=public，无需再加 --access
+npm publish          # TTY 里跑，按提示开浏览器 + security key
 ```
 
 验证：
 
 ```bash
 npm view dsh-mimo-asr version dist.tarball
-npx -y dsh-mimo-asr --help 2>/dev/null || true   # 不是 CLI，忽略
 ```
 
-装到手机上（npm 路径，不再依赖本地 tgz）：
+## 3. CI 发布（推荐，1.0.2 起）
+
+仓库里已有 [.github/workflows/publish.yml](.github/workflows/publish.yml)：`v*` tag 触发，走 npm **trusted publishing（OIDC）**，不要 token、不弹 2FA。
+
+一次性配置：<https://www.npmjs.com/package/dsh-mimo-asr/access> → Trusted Publisher → GitHub Actions →
+
+| 字段 | 值 |
+|---|---|
+| Repository | `Easyhoov/dsh-mimo-asr` |
+| Workflow | `publish.yml` |
+| Environment | 留空 |
+
+之后：
 
 ```bash
-dsh plugin --profile web add dsh-mimo-asr
+git tag v1.0.2 && git push origin v1.0.2
 ```
 
-## 3. 出现到市场
+工作流会校验 tag 与 `package.json` 的 version 一致，再 `npm publish --provenance`。npm 页面上会显示 "Built and signed on GitHub Actions"。
 
-dshfind 的抓取是周期性的，发布后过一段时间跑一次：
-
-```bash
-curl -s https://api.dshfind.com/market/dsh-index.json | grep -c '"name": "dsh-mimo-asr"'
-```
-
-返回 1 就说明进索引了；App 里「插件市场」搜索 `mimo` 即可。
-
-如果几天后仍没有，去 <https://dshfind.com> 找作者/仓库提 issue 让他收录（索引里没有提交入口）。
+> 备选：拿一个勾了 `Bypass 2FA for publish` 的 granular token 配 `//registry.npmjs.org/:_authToken`，也能在 CI/脚本里发——但 npm 从 **2027-01** 起禁止这类 token 直接发布，属于过渡方案。
 
 ## 4. 版本规则
 
-- 只改文档 → `1.0.1` → `1.0.2`（npm 同一个版本号不能重发）。
-- 改 provider 逻辑或依赖 → patch/minor 视情况；**不要**在已发布版本上覆盖。
-- 依赖里的 `@deepseek-ai/dsh-experimental-*` 是**精确版本**锁定（`0.2.1-rc.2`）：DSH 运行时升级时，这里也要跟着升，否则 `speechToText` 的接口可能对不上。
+- 改文档 → `1.0.1` → `1.0.2`（同一版本号不能重发）。
+- 改 provider 逻辑/依赖 → 视情况 patch 或 minor。
+- 依赖里的 `@deepseek-ai/dsh-experimental-*` 是**精确版本**（`0.2.1-rc.2`），DSH 运行时升级时要跟着升，否则 `speechToText` 接口可能对不上。
 
 ## 5. 发布前自查
 
 ```bash
-npm pack --dry-run      # 应该只有 lib/、cordis.patch.yml、README.md、LICENSE、package.json
+npm pack --dry-run      # 只应有 lib/、cordis.patch.yml、README.md、LICENSE、package.json
 node --check lib/index.js
 ```
 
-- [ ] `cordis.patch.yml` 里的 `defaultProvider` 与 `config.providerId` 默认值一致（都是 `mimo-cloud`）
-- [ ] README 里的 key 获取方式与代码一致（`config.apiKey` → `$MIMO_API_KEY` → `~/.dsh/mimo-asr.key`）
-- [ ] 没把任何真实 API key 写进仓库或 patch
+- [ ] `cordis.patch.yml` 的 `defaultProvider` 与 `config.providerId` 默认值一致（都是 `mimo-cloud`）
+- [ ] README 的 key 获取方式与代码一致（`config.apiKey` → `$MIMO_API_KEY` → `~/.dsh/mimo-asr.key`）
+- [ ] 仓库里没有任何真实 API key
