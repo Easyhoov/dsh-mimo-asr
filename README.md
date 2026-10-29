@@ -36,25 +36,30 @@ dsh plugin --profile <profile> add /path/to/dsh-mimo-asr-1.0.1.tgz
 
 ## 配置 API Key
 
-插件 schema 里 `apiKey` 是 `role('secret')` 字段，但当前 DSH Go 的「设置 › 引擎参数」只列注册了自己命名空间的插件（本包只注册识别器，没有自己的设置页），所以实际用下面两种方式之一：
+**在 App 里填（推荐）**：设置 › 插件 › `dsh-mimo-asr` › **设置**，或设置 › **引擎参数**，里面有 `API key` 密码框；同一页还能改 `access`、`cluster`、`model`、`language`。填完点保存/完成即可，**下一次录音就直接生效**，不用重启。
 
-1. **文件**（推荐，权限 600，不进任何配置文件）：
+> 设置页会把值写进 profile 的 `cordis.patch.yml`（明文，靠文件权限 600 保护）。不想让 key 落到配置文件里，就用下面的文件或环境变量。
+
+也可以继续用老办法（适合没有设置页的主机）：
+
+1. **文件**（权限 600，不进任何配置文件）：
    ```bash
    echo 'sk-...' > ~/.dsh/mimo-asr.key && chmod 600 ~/.dsh/mimo-asr.key
    ```
 2. **环境变量**：`MIMO_API_KEY=sk-...`
 
-两者的优先级：`config.apiKey`（如果有人把它写进 patch）> `$MIMO_API_KEY` > `~/.dsh/mimo-asr.key`。
+优先级：设置页里的 `apiKey` > `$MIMO_API_KEY` > `~/.dsh/mimo-asr.key`。设置页留空就会自动回落到后两者。
 
-其余字段：
+字段（标记 ★ 的可在设置页里改）：
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
 | `providerId` | `mimo-cloud` | 必须和 registry 的 `defaultProvider` 一致 |
-| `access` | `api` | `api` 用 `api.xiaomimimo.com`；`token-plan` 用 `token-plan-{cluster}.xiaomimimo.com` |
-| `cluster` | `cn` | Token Plan 的集群：`cn` / `sgp` / `ams` |
-| `model` | `mimo-v2.5-asr` | 模型 id |
-| `language` | `auto` | `auto` / `zh` / `en`；`auto` 时优先跟随 App 传来的语言提示 |
+| `apiKey` ★ | 空 | MiMo API Key；空则回落环境变量、再回落 key 文件 |
+| `access` ★ | `api` | `api` 用 `api.xiaomimimo.com`；`token-plan` 用 `token-plan-{cluster}.xiaomimimo.com` |
+| `cluster` ★ | `cn` | Token Plan 的集群：`cn` / `sgp` / `ams` |
+| `model` ★ | `mimo-v2.5-asr` | 模型 id |
+| `language` ★ | `auto` | `auto` / `zh` / `en`；`auto` 时优先跟随 App 传来的语言提示 |
 | `timeoutMs` | `120000` | 单次转写超时 |
 
 ## 使用
@@ -73,7 +78,7 @@ App：设置 › 语音输入 › **引擎**（`自动` 也能用，但它会先
 | 引擎日志：`dsh-mimo-asr: pending (waiting for service: speechToText)` | registry 条目没起来。检查 `cordis.patch.yml` 的 `defaultProvider`（它是 **required**，缺了会让 registry 的 `_resolveConfig` 抛错，服务就永远不出现） |
 | App 提示「请在引擎中启用并配置语音转写」 | `speech/catalog` 返回 null，或 `selection.providerId` 找不到对应 provider |
 | `MiMo ASR HTTP 401` | key 不对，或 `access`/`cluster` 选错 |
-| `MiMo ASR: no API key` | 上面三种配置方式都没生效 |
+| `MiMo ASR: no API key` | 设置页、环境变量、key 文件三处都没有值（设置页留空等于没设） |
 | 返回空文本 | 录音里没人声；或用 `language: zh` 明确指定语言 |
 
 ## 注意
