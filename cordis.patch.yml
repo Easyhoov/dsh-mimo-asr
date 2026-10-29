@@ -1,0 +1,34 @@
+# Profile layer for the MiMo cloud recognizer.
+#
+# DSH Go's composer microphone only ever calls `speech/catalog` and
+# `speech/transcribe`, so a cloud recognizer needs both halves of that Remote:
+#
+#   1. the registry that owns recognizers (`speechToText` service),
+#   2. the Remote controller that turns the registry into `speech/*` endpoints,
+#   3. this package's provider, which does the actual HTTP call.
+#
+# `defaultProvider` must match the provider id this package registers; it is what
+# `speech/catalog` reports as the current selection. The app's engine settings
+# page can change it later, but a fresh profile needs it here.
+- insert:
+    - id: dsh-speech-registry
+      name: "@deepseek-ai/dsh-experimental-speech-to-text"
+      config:
+        defaultProvider: mimo-cloud
+        language: auto
+    - id: dsh-speech-api
+      name: "@deepseek-ai/dsh-experimental-api-speech-to-text"
+      config:
+        maxAudioBytes: 4194304
+        maxDurationSeconds: 120
+    - id: dsh-mimo-asr
+      name: dsh-mimo-asr
+      # Declaring the fields here is what makes the entry appear under
+      # 设置 › 引擎参数 in the app, where the API key can be typed into a secret
+      # field. Leave apiKey out so the key is not written into a patch file:
+      # the plugin falls back to ~/.dsh/mimo-asr.key, then $MIMO_API_KEY.
+      config:
+        model: mimo-v2.5-asr
+        access: api
+        cluster: cn
+        language: auto
