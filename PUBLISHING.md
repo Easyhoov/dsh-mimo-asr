@@ -11,12 +11,12 @@
 市场条目会带 `repository.url` 和 GitHub star 数，没有仓库也能上架，但：
 
 - 没有 `repository` 字段 → 市场里没有源码入口、没有 stars，排序靠后（`sortKeys.stars`）；
-- 建议先在 GitHub 建个仓库（例如 `dsh-mimo-asr`），再把地址填进 `package.json` 的 `repository`：
+- 仓库已经建好了（<https://github.com/Easyhoov/dsh-mimo-asr>），`repository`/`homepage`/`bugs` 都已填好，这里记录格式：
 
 ```json
-"repository": { "type": "git", "url": "https://github.com/<你>/dsh-mimo-asr.git" },
-"homepage": "https://github.com/<你>/dsh-mimo-asr#readme",
-"bugs": { "url": "https://github.com/<你>/dsh-mimo-asr/issues" }
+"repository": { "type": "git", "url": "https://github.com/Easyhoov/dsh-mimo-asr.git" },
+"homepage": "https://github.com/Easyhoov/dsh-mimo-asr#readme",
+"bugs": { "url": "https://github.com/Easyhoov/dsh-mimo-asr/issues" }
 ```
 
 ## 2. 发布
